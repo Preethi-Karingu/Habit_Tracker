@@ -1,0 +1,1587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <!-- =============================================
+       META TAGS — Tell the browser how to behave
+       ============================================= -->
+
+  <!-- This tells every browser: "This is an HTML5 document" -->
+  <meta charset="UTF-8">
+
+  <!-- This is the magic line that makes your app look good on phones.
+       Without it, mobile browsers zoom out and make everything tiny. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- The title that shows in the browser tab -->
+  <title>DailyYou — Habit & Hobby Tracker</title>
+
+  <!-- =============================================
+       GOOGLE FONTS — Beautiful typography for free
+       ============================================= -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+
+  <!-- =============================================
+       CSS — Everything that controls how it LOOKS
+       ============================================= -->
+  <style>
+
+    /* ============================================
+       DESIGN TOKENS — the app's colour & spacing DNA
+       ============================================ */
+    :root {
+      --bg:            #0a0a0d;
+      --surface:       #141418;
+      --surface-2:     #1e1e24;
+      --surface-3:     #26262e;
+      --border:        #2a2a35;
+      --border-bright: #3a3a48;
+      --text:          #eeedf8;
+      --text-muted:    #6e6d80;
+      --text-soft:     #a09eb8;
+      --accent:        #ff6b35;
+      --accent-dim:    rgba(255, 107, 53, 0.18);
+      --accent-glow:   rgba(255, 107, 53, 0.28);
+      --green:         #34d87a;
+      --green-dim:     rgba(52, 216, 122, 0.14);
+      --radius:        18px;
+      --radius-sm:     11px;
+      --radius-xs:     7px;
+    }
+
+    /* ============================================
+       RESET & BASE
+       ============================================ */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html { -webkit-tap-highlight-color: transparent; } /* removes grey flash on mobile tap */
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      min-height: 100dvh;          /* dvh = dynamic viewport height, fixes mobile browser bar */
+      overflow-x: hidden;
+    }
+
+    /* Layered background: deep glow at top + subtle noise texture feel */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 90% 55% at 50% -5%,  rgba(255,107,53,0.09), transparent 65%),
+        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(52,216,122,0.04), transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ============================================
+       LAYOUT WRAPPER
+       ============================================ */
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 0 20px 120px;
+    }
+
+    @media (min-width: 400px) {
+      .wrapper { padding-left: 24px; padding-right: 24px; }
+    }
+
+    /* ============================================
+       HEADER
+       ============================================ */
+    .app-header {
+      padding: 52px 0 24px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .app-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .app-logo .flame-icon {
+      font-size: 30px;
+      line-height: 1;
+      animation: logo-pulse 2.8s ease-in-out infinite;
+    }
+
+    @keyframes logo-pulse {
+      0%,100% { transform: scale(1) rotate(0deg);   opacity: 1;    }
+      40%      { transform: scale(1.1) rotate(-4deg); opacity: 0.9;  }
+      60%      { transform: scale(1.15) rotate(3deg); opacity: 0.85; }
+    }
+
+    .app-logo .app-name {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 23px;
+      letter-spacing: -0.8px;
+      color: var(--text);
+    }
+
+    .app-logo .app-name span { color: var(--accent); }
+
+    .header-date {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      text-align: right;
+      line-height: 1.4;
+    }
+
+    .header-date strong {
+      display: block;
+      font-size: 14.5px;
+      font-weight: 500;
+      color: var(--text-soft);
+    }
+
+    /* ============================================
+       SUMMARY STATS BAR  ← NEW in Step 9
+       Shows "X habits · Y done today · best streak Z"
+       ============================================ */
+    .stats-bar {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      margin-bottom: 24px;
+      overflow: hidden;             /* clips children to the rounded corners */
+    }
+
+    .stat-item {
+      flex: 1;
+      text-align: center;
+      padding: 12px 8px;
+      position: relative;
+    }
+
+    /* Divider line between stats */
+    .stat-item + .stat-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 20%;
+      height: 60%;
+      width: 1px;
+      background: var(--border);
+    }
+
+    .stat-value {
+      display: block;
+      font-family: 'Syne', sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1.1;
+      color: var(--text);
+    }
+
+    .stat-value.accent { color: var(--accent); }
+    .stat-value.green  { color: var(--green);  }
+
+    .stat-label {
+      display: block;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* ============================================
+       SECTION LABEL
+       ============================================ */
+    .section-label {
+      font-family: 'Syne', sans-serif;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 14px;
+      margin-top: 8px;
+    }
+
+    /* ============================================
+       EMPTY STATE
+       ============================================ */
+    .empty-state {
+      text-align: center;
+      padding: 56px 24px 48px;
+    }
+
+    .empty-state .empty-icon {
+      font-size: 52px;
+      margin-bottom: 18px;
+      display: block;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%,100% { transform: translateY(0);    }
+      50%      { transform: translateY(-8px); }
+    }
+
+    .empty-state h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 21px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      letter-spacing: -0.3px;
+    }
+
+    .empty-state p {
+      color: var(--text-muted);
+      font-size: 14.5px;
+      max-width: 260px;
+      margin: 0 auto;
+      line-height: 1.75;
+    }
+
+    /* ============================================
+       HABIT CARD  — the main repeating unit
+       ============================================ */
+    .habit-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 20px 16px;
+      margin-bottom: 12px;
+      transition: border-color 0.25s, box-shadow 0.25s, transform 0.2s;
+      /* Card entrance animation */
+      animation: card-in 0.35s ease both;
+    }
+
+    @keyframes card-in {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0);    }
+    }
+
+    /* Stagger delay for each card so they cascade in */
+    .habit-card:nth-child(1) { animation-delay: 0.03s; }
+    .habit-card:nth-child(2) { animation-delay: 0.07s; }
+    .habit-card:nth-child(3) { animation-delay: 0.11s; }
+    .habit-card:nth-child(4) { animation-delay: 0.15s; }
+    .habit-card:nth-child(5) { animation-delay: 0.19s; }
+
+    .habit-card:active {
+      transform: scale(0.99);
+    }
+
+    /* Done today — green glow */
+    .habit-card.done-today {
+      border-color: rgba(52, 216, 122, 0.3);
+      box-shadow: 0 0 0 1px rgba(52,216,122,0.1), 0 6px 28px rgba(0,0,0,0.35);
+    }
+
+    /* Card header row */
+    .habit-card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      gap: 10px;
+    }
+
+    .habit-name {
+      font-family: 'Syne', sans-serif;
+      font-size: 16.5px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.3;
+      letter-spacing: -0.2px;
+    }
+
+    /* Category badge */
+    .category-badge {
+      flex-shrink: 0;
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 4px 9px;
+      border-radius: 100px;
+      background: var(--surface-2);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    .category-badge.health      { color: #34d87a; border-color: rgba(52,216,122,0.28); background: rgba(52,216,122,0.06); }
+    .category-badge.hobby       { color: #c084fc; border-color: rgba(192,132,252,0.28); background: rgba(192,132,252,0.06); }
+    .category-badge.work        { color: #60a5fa; border-color: rgba(96,165,250,0.28);  background: rgba(96,165,250,0.06); }
+    .category-badge.mindfulness { color: #fbbf24; border-color: rgba(251,191,36,0.28);  background: rgba(251,191,36,0.06); }
+
+    /* ============================================
+       STREAK ROW
+       ============================================ */
+    .streak-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .flame-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .flame-svg {
+      display: block;
+      transition: width 0.45s cubic-bezier(0.34,1.56,0.64,1),
+                  height 0.45s cubic-bezier(0.34,1.56,0.64,1),
+                  filter 0.45s ease;
+    }
+
+    .flame-wrap[data-tier="0"] .flame-svg { width: 22px; height: 22px; filter: grayscale(90%) opacity(0.35); }
+    .flame-wrap[data-tier="1"] .flame-svg { width: 26px; height: 26px; filter: drop-shadow(0 0 4px rgba(255,107,53,0.45)); }
+    .flame-wrap[data-tier="2"] .flame-svg { width: 30px; height: 30px; filter: drop-shadow(0 0 7px rgba(255,107,53,0.6)); }
+    .flame-wrap[data-tier="3"] .flame-svg { width: 36px; height: 36px; filter: drop-shadow(0 0 10px rgba(255,107,53,0.75)); animation: flame-dance 1.8s ease-in-out infinite; }
+    .flame-wrap[data-tier="4"] .flame-svg { width: 42px; height: 42px; filter: drop-shadow(0 0 14px rgba(255,107,53,0.9)) drop-shadow(0 0 26px rgba(255,160,50,0.45)); animation: flame-dance 1.3s ease-in-out infinite; }
+    .flame-wrap[data-tier="5"] .flame-svg { width: 50px; height: 50px; filter: drop-shadow(0 0 18px rgba(255,107,53,1)) drop-shadow(0 0 34px rgba(255,200,50,0.65)); animation: flame-dance 0.95s ease-in-out infinite; }
+
+    @keyframes flame-dance {
+      0%,100% { transform: rotate(-4deg) scaleY(1);    }
+      25%      { transform: rotate(3deg)  scaleY(1.05); }
+      75%      { transform: rotate(-2deg) scaleY(0.96); }
+    }
+
+    @keyframes streak-pop {
+      0%   { transform: scale(1); }
+      45%  { transform: scale(1.4); color: var(--accent); }
+      100% { transform: scale(1); }
+    }
+
+    .streak-count {
+      font-family: 'Syne', sans-serif;
+      font-size: 30px;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+      display: inline-block;
+      letter-spacing: -1px;
+    }
+
+    .streak-count.pop { animation: streak-pop 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+
+    .streak-label {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    /* ============================================
+       CHECK-IN BUTTON
+       ============================================ */
+    .checkin-btn {
+      width: 100%;
+      padding: 15px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: 0.1px;
+      transition: all 0.2s;
+      background: var(--surface-2);
+      color: var(--text-soft);
+    }
+
+    .checkin-btn:not(:disabled):hover {
+      background: var(--surface-3);
+      border-color: var(--border-bright);
+      color: var(--text);
+    }
+
+    .checkin-btn:active { transform: scale(0.97); }
+
+    .checkin-btn.done {
+      background: var(--green-dim);
+      color: var(--green);
+      border-color: rgba(52,216,122,0.28);
+      cursor: default;
+    }
+
+    @keyframes checkin-bounce {
+      0%   { transform: scale(1);    }
+      35%  { transform: scale(0.94); }
+      65%  { transform: scale(1.04); }
+      100% { transform: scale(1);    }
+    }
+
+    .checkin-btn.just-done { animation: checkin-bounce 0.38s ease; }
+
+    /* ============================================
+       URGENCY BAR
+       ============================================ */
+    .urgency-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      padding: 9px 12px;
+      border-radius: var(--radius-xs);
+      font-size: 12.5px;
+      font-weight: 500;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+    }
+
+    .urgency-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .urgency-bar.level-ok    { border-color: rgba(96,165,250,0.22); }
+    .urgency-bar.level-ok .urgency-dot { background: #60a5fa; box-shadow: 0 0 5px rgba(96,165,250,0.5); }
+    .urgency-bar.level-ok .urgency-text { color: #93c5fd; }
+
+    .urgency-bar.level-soon  { border-color: rgba(251,191,36,0.28); background: rgba(251,191,36,0.04); }
+    .urgency-bar.level-soon .urgency-dot { background: #fbbf24; box-shadow: 0 0 6px rgba(251,191,36,0.55); animation: urgency-pulse 1.5s ease-in-out infinite; }
+    .urgency-bar.level-soon .urgency-text { color: #fcd34d; }
+
+    .urgency-bar.level-danger { border-color: rgba(248,113,113,0.35); background: rgba(248,113,113,0.05); }
+    .urgency-bar.level-danger .urgency-dot { background: #f87171; box-shadow: 0 0 8px rgba(248,113,113,0.65); animation: urgency-pulse 0.75s ease-in-out infinite; }
+    .urgency-bar.level-danger .urgency-text { color: #fca5a5; }
+
+    @keyframes urgency-pulse {
+      0%,100% { opacity: 1; transform: scale(1);   }
+      50%      { opacity: 0.45; transform: scale(1.45); }
+    }
+
+    /* ============================================
+       WEEKLY GRID
+       ============================================ */
+    .week-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      margin-top: 14px;
+    }
+
+    .week-day {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .week-day-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .week-dot {
+      width: 100%;
+      aspect-ratio: 1/1;
+      border-radius: 50%;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      transition: background 0.25s, border-color 0.25s, box-shadow 0.25s;
+    }
+
+    .week-dot.done {
+      background: var(--green);
+      border-color: var(--green);
+      box-shadow: 0 0 7px rgba(52,216,122,0.5);
+    }
+
+    .week-dot.today        { border-color: var(--accent); border-width: 2px; }
+    .week-dot.today.done   { border-color: var(--accent); box-shadow: 0 0 9px rgba(52,216,122,0.55), 0 0 0 2px var(--accent-dim); }
+
+    /* ============================================
+       BROKEN STREAK MESSAGE
+       ============================================ */
+    .broken-streak {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-top: 12px;
+      padding: 13px 14px;
+      border-radius: var(--radius-sm);
+      background: rgba(192,132,252,0.06);
+      border: 1px solid rgba(192,132,252,0.18);
+    }
+
+    .broken-streak-emoji { font-size: 18px; line-height: 1.3; flex-shrink: 0; }
+
+    .broken-streak-text {
+      font-size: 13px;
+      line-height: 1.65;
+      color: #c4b5fd;
+    }
+
+    .broken-streak-text strong {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 3px;
+      color: #ddd6fe;
+      font-size: 13.5px;
+    }
+
+    /* ============================================
+       DELETE BUTTON
+       ============================================ */
+    .delete-btn {
+      display: block;
+      margin-top: 14px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11.5px;
+      cursor: pointer;
+      padding: 4px 0;
+      transition: color 0.2s;
+      letter-spacing: 0.3px;
+      opacity: 0.7;
+    }
+
+    .delete-btn:hover { color: #f87171; opacity: 1; }
+
+    /* ============================================
+       FAB — Floating Action Button
+       ============================================ */
+    .fab {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 100px;
+      padding: 16px 32px;
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 28px rgba(255,107,53,0.45), 0 1px 0 rgba(255,255,255,0.12) inset;
+      transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1),
+                  box-shadow 0.2s ease;
+      z-index: 100;
+      letter-spacing: 0.2px;
+    }
+
+    .fab:hover {
+      transform: translateX(-50%) translateY(-3px);
+      box-shadow: 0 8px 36px rgba(255,107,53,0.55), 0 1px 0 rgba(255,255,255,0.12) inset;
+    }
+
+    .fab:active {
+      transform: translateX(-50%) scale(0.96);
+      box-shadow: 0 2px 16px rgba(255,107,53,0.4);
+    }
+
+    /* ============================================
+       MODAL
+       ============================================ */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.72);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 200;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.28s ease;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border-bright);
+      border-radius: 24px 24px 0 0;
+      padding: 12px 24px 52px;
+      width: 100%;
+      max-width: 480px;
+      transform: translateY(100%);
+      transition: transform 0.38s cubic-bezier(0.32, 0.72, 0, 1);
+      /* Subtle inner top border highlight */
+      box-shadow: 0 -1px 0 rgba(255,255,255,0.05) inset;
+    }
+
+    .modal-overlay.open .modal { transform: translateY(0); }
+
+    .modal-handle {
+      width: 36px;
+      height: 4px;
+      background: var(--border-bright);
+      border-radius: 2px;
+      margin: 12px auto 22px;
+    }
+
+    .modal-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 21px;
+      font-weight: 800;
+      margin-bottom: 24px;
+      letter-spacing: -0.4px;
+    }
+
+    /* Form fields */
+    .field { margin-bottom: 18px; }
+
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      appearance: none;
+    }
+
+    .field input:focus,
+    .field select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+
+    .field input::placeholder { color: var(--text-muted); }
+
+    /* Primary button */
+    .btn-primary {
+      width: 100%;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 18px rgba(255,107,53,0.35);
+      letter-spacing: 0.2px;
+    }
+
+    .btn-primary:hover  { box-shadow: 0 6px 24px rgba(255,107,53,0.45); }
+    .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
+
+  </style>
+</head>
+
+<body>
+
+  <!-- =============================================
+       HTML STRUCTURE — The skeleton of the app
+       ============================================= -->
+
+  <!-- The wrapper keeps everything centered and properly padded -->
+  <div class="wrapper">
+
+    <!-- ---- HEADER ---- -->
+    <header class="app-header">
+      <div class="app-logo">
+        <span class="flame-icon">🔥</span>
+        <span class="app-name">Daily<span>You</span></span>
+      </div>
+      <div class="header-date" id="headerDate">
+        <!-- JavaScript will fill this in with today's date -->
+      </div>
+    </header>
+
+    <!-- ---- MAIN CONTENT AREA ---- -->
+    <main>
+
+      <!-- Section label -->
+      <p class="section-label">Your Habits</p>
+
+      <!-- Summary stats bar — filled in by JavaScript -->
+      <div class="stats-bar" id="statsBar" style="display:none">
+        <div class="stat-item">
+          <span class="stat-value" id="statTotal">0</span>
+          <span class="stat-label">Habits</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value green" id="statDone">0</span>
+          <span class="stat-label">Done today</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value accent" id="statBest">0</span>
+          <span class="stat-label">Best streak</span>
+        </div>
+      </div>
+
+      <!-- Empty state — shown when there are no habits yet -->
+      <!-- We'll hide this when habits exist using JavaScript -->
+      <div class="empty-state" id="emptyState">
+        <span class="empty-icon">🌱</span>
+        <h2>Nothing here yet</h2>
+        <p>Tap the button below to add your first habit. Start small — even 1 minute counts.</p>
+      </div>
+
+      <!-- Habits will be listed here by JavaScript -->
+      <!-- For now it's empty — we'll fill it in Step 2 -->
+      <div id="habitsList">
+        <!-- Habits go here -->
+      </div>
+
+    </main>
+
+  </div><!-- end .wrapper -->
+
+
+  <!-- ---- FLOATING ACTION BUTTON ----
+       This button stays at the bottom of the screen at all times -->
+  <button class="fab" id="openModalBtn">
+    <span>＋</span>
+    <span>Add Habit</span>
+  </button>
+
+
+  <!-- ---- MODAL (hidden by default) ----
+       The "Add Habit" form that slides up when you tap the FAB -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+
+      <!-- The little drag handle at the top (purely decorative for now) -->
+      <div class="modal-handle"></div>
+
+      <h2 class="modal-title">New Habit ✨</h2>
+
+      <!-- FORM FIELDS -->
+      <!-- Note: we don't use a <form> tag — we handle submission with JavaScript -->
+
+      <div class="field">
+        <label for="habitName">Habit Name</label>
+        <input
+          type="text"
+          id="habitName"
+          placeholder="e.g. Morning yoga, Drink 2L water..."
+          maxlength="60"
+        >
+      </div>
+
+      <div class="field">
+        <label for="habitCategory">Category</label>
+        <select id="habitCategory">
+          <option value="health">🏃 Health</option>
+          <option value="hobby">🎨 Hobby</option>
+          <option value="work">💼 Work</option>
+          <option value="mindfulness">🧘 Mindfulness</option>
+        </select>
+      </div>
+
+      <button class="btn-primary" id="saveHabitBtn">
+        Start this habit →
+      </button>
+
+    </div>
+  </div><!-- end .modal-overlay -->
+
+
+  <!-- =============================================
+       JAVASCRIPT — The brain of the app
+       ============================================= -->
+  <script>
+
+    // ===========================================
+    // SECTION 1 — DATE IN HEADER
+    // ===========================================
+
+    // new Date() reads the current date & time from the user's device
+    const today = new Date();
+
+    const dateOptions = { weekday: 'long', month: 'long', day: 'numeric' };
+    const dateString  = today.toLocaleDateString('en-US', dateOptions);
+    const [weekday, ...rest] = dateString.split(', ');
+
+    document.getElementById('headerDate').innerHTML =
+      `<strong>${rest.join(', ')}</strong>${weekday}`;
+
+
+    // ===========================================
+    // SECTION 2 — localStorage HELPERS
+    //
+    // localStorage is like a tiny notepad built into
+    // every browser. It remembers data even after you
+    // close the tab. It can only store plain text (strings),
+    // so we convert our data to/from JSON format.
+    //
+    // JSON looks like:  [{"id":1,"name":"Yoga"}, {"id":2,"name":"Walk"}]
+    // It's just text that represents a list of objects.
+    // ===========================================
+
+    // LOAD habits from localStorage.
+    // If nothing is saved yet, return an empty array [].
+    function loadHabits() {
+      // localStorage.getItem('key') returns the saved text, or null if nothing saved
+      const saved = localStorage.getItem('streaks_habits');
+
+      // If saved is null (nothing there yet), use an empty array
+      // JSON.parse() converts the text back into a real JavaScript array
+      return saved ? JSON.parse(saved) : [];
+    }
+
+    // SAVE the full habits array to localStorage.
+    // We call this every time something changes.
+    function saveHabits(habits) {
+      // JSON.stringify() converts the array into text so localStorage can store it
+      localStorage.setItem('streaks_habits', JSON.stringify(habits));
+    }
+
+
+    // ===========================================
+    // SECTION 3 — RENDER (draw) HABITS ON SCREEN
+    //
+    // This function reads the habits array and
+    // builds the HTML cards on screen from scratch.
+    // We call it every time something changes.
+    // ===========================================
+
+    // Friendly display labels for each category value
+    const CATEGORY_LABELS = {
+      health:      '🏃 Health',
+      hobby:       '🎨 Hobby',
+      work:        '💼 Work',
+      mindfulness: '🧘 Mindfulness',
+    };
+
+    // ===========================================
+    // SECTION 3A — DATE HELPERS
+    //
+    // We need a reliable way to represent "today"
+    // as a simple string like "2025-03-24".
+    // We use this string as a key to record check-ins.
+    // ===========================================
+
+    // Returns today's date as "YYYY-MM-DD"
+    // e.g. "2025-03-24"
+    // We avoid timezone issues by using local date parts directly.
+    function getTodayString() {
+      const d = new Date();
+      const year  = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0'); // months are 0-indexed!
+      const day   = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    // Returns a date string "YYYY-MM-DD" for N days ago.
+    // e.g. daysAgoString(1) = yesterday, daysAgoString(7) = one week ago
+    function daysAgoString(n) {
+      const d = new Date();
+      d.setDate(d.getDate() - n); // setDate subtracts days; JS handles month rollover for you
+      const year  = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day   = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    // Check if a habit was already checked in TODAY
+    function isDoneToday(habit) {
+      if (!habit.checkins || habit.checkins.length === 0) return false;
+      return habit.checkins.includes(getTodayString());
+    }
+
+
+    // ===========================================
+    // SECTION 3B — STREAK CALCULATOR  ← NEW in Step 4
+    //
+    // A "streak" = consecutive days checked in with
+    // no gap between them.
+    //
+    // Rules:
+    //  - We walk backwards from today (or yesterday
+    //    if today isn't done yet) one day at a time.
+    //  - Every day that has a check-in adds 1 to the count.
+    //  - The first missing day BREAKS the streak — we stop.
+    //
+    // Example checkins: ["2025-03-20","2025-03-22","2025-03-23","2025-03-24"]
+    //  Walking back from today (24th): 24✓ 23✓ 22✓ 21✗ → streak = 3
+    // ===========================================
+
+    function calculateStreak(habit) {
+      // No check-ins at all? Streak is 0.
+      if (!habit.checkins || habit.checkins.length === 0) return 0;
+
+      // Put check-ins in a Set for instant O(1) lookups.
+      // A Set is like an array but checking "does X exist?" is much faster.
+      // set.has("2025-03-24") is instant, no matter how many dates there are.
+      const checkinSet = new Set(habit.checkins);
+
+      const today     = getTodayString();
+      const yesterday = daysAgoString(1);
+
+      // Decide where to START counting from:
+      // - If today is done → start from today
+      // - If today is NOT done but yesterday was → start from yesterday
+      //   (grace: the user hasn't checked in yet but the streak is alive)
+      // - Otherwise → streak is 0 (last check-in was 2+ days ago, it's broken)
+      let startDaysAgo;
+      if (checkinSet.has(today)) {
+        startDaysAgo = 0;       // start counting from today
+      } else if (checkinSet.has(yesterday)) {
+        startDaysAgo = 1;       // start counting from yesterday
+      } else {
+        return 0;               // gap of 2+ days → broken streak
+      }
+
+      // Walk backwards day by day, counting consecutive check-ins
+      let streak = 0;
+      let offset = startDaysAgo;
+
+      // A while loop keeps running as long as its condition is true.
+      // We stop when we find a day with no check-in (a gap).
+      while (true) {
+        const dateToCheck = daysAgoString(offset);
+
+        if (checkinSet.has(dateToCheck)) {
+          streak++;       // this day has a check-in — count it
+          offset++;       // move one more day into the past
+        } else {
+          break;          // no check-in on this day — streak is broken, stop
+        }
+
+        // Safety limit: never look back more than 3650 days (10 years)
+        // This prevents an infinite loop if something goes wrong
+        if (offset > 3650) break;
+      }
+
+      return streak;
+    }
+
+
+    // ===========================================
+    // SECTION 3C — CHECK-IN FUNCTION
+    // ===========================================
+
+    function checkInHabit(habitId) {
+      const habits = loadHabits();
+      const habit  = habits.find(h => h.id === habitId);
+      if (!habit) return;
+      if (isDoneToday(habit)) return;
+
+      habit.checkins = habit.checkins || [];
+      habit.checkins.push(getTodayString());
+      saveHabits(habits);
+
+      const btn = document.querySelector(`.checkin-btn[data-id="${habitId}"]`);
+      if (btn) {
+        btn.classList.add('just-done');
+        setTimeout(() => {
+          renderHabits();
+          // After rendering, briefly pop the streak number to celebrate
+          const countEl = document.querySelector(`.habit-card[data-id="${habitId}"] .streak-count`);
+          if (countEl) {
+            countEl.classList.add('pop');
+            // Remove the class after animation so it can fire again next time
+            countEl.addEventListener('animationend', () => countEl.classList.remove('pop'), { once: true });
+          }
+        }, 350);
+      } else {
+        renderHabits();
+      }
+    }
+
+
+    // ===========================================
+    // SECTION 3D — FLAME BUILDER  ← NEW in Step 5
+    //
+    // Converts a streak number into a visual tier (0–5)
+    // and builds an SVG flame that grows with the streak.
+    // ===========================================
+
+    // Map a streak count to a tier number 0–5
+    function getStreakTier(streak) {
+      if (streak === 0)       return 0;  // no streak   → cold/grey
+      if (streak <= 2)        return 1;  // 1–2 days    → tiny flicker
+      if (streak <= 6)        return 2;  // 3–6 days    → small flame
+      if (streak <= 13)       return 3;  // 7–13 days   → dancing flame
+      if (streak <= 29)       return 4;  // 14–29 days  → fierce fire
+      return 5;                          // 30+ days    → legendary inferno
+    }
+
+    // Build the SVG flame markup for a given streak
+    // The flame uses two overlapping teardrop paths — an outer body and an inner highlight.
+    // The colours shift from grey (no streak) → orange → deep gold as the tier rises.
+    function buildFlameHTML(streak) {
+      const tier = getStreakTier(streak);
+
+      // Outer flame colour per tier
+      const outerColors = [
+        '#555560',   // tier 0 — grey/cold
+        '#ff6b35',   // tier 1 — orange
+        '#ff5c1a',   // tier 2 — deeper orange
+        '#ff4500',   // tier 3 — red-orange
+        '#ff3d00',   // tier 4 — vivid red-orange
+        '#ff6000',   // tier 5 — golden inferno
+      ];
+
+      // Inner highlight colour per tier
+      const innerColors = [
+        '#333340',   // tier 0
+        '#ffad6b',   // tier 1
+        '#ffba5c',   // tier 2
+        '#ffcc44',   // tier 3
+        '#ffd633',   // tier 4
+        '#ffe066',   // tier 5 — bright gold core
+      ];
+
+      const outer = outerColors[tier];
+      const inner = innerColors[tier];
+
+      // The SVG uses a viewBox of 0 0 40 50 (40 wide, 50 tall).
+      // The flame shape is drawn with two <path> elements using
+      // cubic bezier curves (the C commands). Don't worry about
+      // the numbers — they're just the coordinates of a teardrop shape.
+      return `
+        <div class="flame-wrap" data-tier="${tier}">
+          <svg class="flame-svg" viewBox="0 0 40 50" xmlns="http://www.w3.org/2000/svg">
+            <!-- Outer flame body -->
+            <path d="
+              M20 48
+              C8 48 2 38 2 28
+              C2 18 10 10 16 4
+              C17 2 19 5 18 9
+              C17 13 15 17 16 21
+              C17 25 20 20 22 16
+              C24 12 28 8 30 4
+              C31 1 34 3 33 7
+              C32 11 30 16 31 21
+              C32 26 36 22 37 17
+              C38 14 40 18 39 22
+              C38 34 32 48 20 48Z
+            " fill="${outer}" />
+            <!-- Inner highlight / core -->
+            <path d="
+              M20 44
+              C13 44 9 36 10 28
+              C11 22 16 17 17 22
+              C18 26 20 24 22 20
+              C24 16 26 18 26 23
+              C26 30 23 38 20 44Z
+            " fill="${inner}" opacity="0.85" />
+          </svg>
+        </div>
+      `;
+    }
+
+    // ===========================================
+    // SECTION 3E — WEEKLY GRID BUILDER  ← NEW in Step 6
+    //
+    // Builds a row of 7 dots representing the last 7 days.
+    // Each dot is green if that day had a check-in,
+    // grey if it was missed, with a ring on today's dot.
+    // ===========================================
+
+    const DAY_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+    function buildWeekGridHTML(habit) {
+      const checkinSet = new Set(habit.checkins || []);
+      const today      = getTodayString();
+
+      // Build an array of 7 day objects, oldest (6 days ago) → newest (today).
+      // Array.from({ length: 7 }, (_, i) => ...) creates a 7-item array where
+      // each item is built by the function. _ is the value (unused), i is the index 0–6.
+      const days = Array.from({ length: 7 }, (_, i) => {
+        const daysBack = 6 - i;          // i=0 → 6 days ago … i=6 → today
+        const dateStr  = daysAgoString(daysBack);
+
+        // Get the real Date object for that day so we can find the day-of-week letter
+        const d = new Date();
+        d.setDate(d.getDate() - daysBack);
+        const dayIndex = (d.getDay() + 6) % 7; // convert JS Sun=0 → Mon=0 system
+
+        return {
+          dateStr,
+          letter:  DAY_LETTERS[dayIndex],
+          isDone:  checkinSet.has(dateStr),
+          isToday: dateStr === today,
+        };
+      });
+
+      // Turn each day object into an HTML dot cell
+      const dotsHTML = days.map(day => {
+        let dotClass = 'week-dot';
+        if (day.isDone)  dotClass += ' done';
+        if (day.isToday) dotClass += ' today';
+
+        return `
+          <div class="week-day">
+            <span class="week-day-label">${day.letter}</span>
+            <div class="${dotClass}" title="${day.dateStr}"></div>
+          </div>
+        `;
+      }).join('');
+
+      return `<div class="week-grid">${dotsHTML}</div>`;
+    }
+
+    // ===========================================
+    // SECTION 3I — STATS BAR  ← NEW in Step 9
+    //
+    // Updates the three summary numbers at the top:
+    // total habits, done today, best current streak.
+    // ===========================================
+
+    function renderStatsBar() {
+      const habits  = loadHabits();
+      const barEl   = document.getElementById('statsBar');
+
+      // Hide the bar if there are no habits
+      if (habits.length === 0) {
+        barEl.style.display = 'none';
+        return;
+      }
+
+      barEl.style.display = 'flex';
+
+      // Count how many are done today
+      const doneCount = habits.filter(h => isDoneToday(h)).length;
+
+      // Find the highest current streak across all habits
+      const bestStreak = habits.reduce((best, h) => {
+        // Math.max returns the bigger of two numbers
+        return Math.max(best, calculateStreak(h));
+      }, 0); // 0 is the starting value
+
+      document.getElementById('statTotal').textContent = habits.length;
+      document.getElementById('statDone').textContent  = doneCount;
+      document.getElementById('statBest').textContent  = bestStreak;
+    }
+    //
+    // Figures out if a streak was recently broken,
+    // how long the lost streak was, and how many days
+    // have passed since the break. Returns that info
+    // so we can show a kind, personalised message.
+    // ===========================================
+
+    function getBrokenStreakInfo(habit) {
+      const checkins = habit.checkins || [];
+
+      // No check-ins at all — nothing to be broken
+      if (checkins.length === 0) return null;
+
+      const checkinSet = new Set(checkins);
+      const today      = getTodayString();
+      const yesterday  = daysAgoString(1);
+
+      // If today or yesterday has a check-in, the streak is alive — no broken message
+      if (checkinSet.has(today) || checkinSet.has(yesterday)) return null;
+
+      // The streak IS broken. Now find:
+      // 1. How many days ago was the last check-in?
+      // 2. How long was the streak that just broke?
+
+      // Walk backwards from 2 days ago to find the most recent check-in
+      let lastCheckinOffset = null;
+      for (let i = 2; i <= 365; i++) {
+        if (checkinSet.has(daysAgoString(i))) {
+          lastCheckinOffset = i; // found the last check-in day
+          break;
+        }
+      }
+
+      // No check-in found in the past year — don't show a message
+      if (lastCheckinOffset === null) return null;
+
+      // Only show the message if the break happened recently (within 7 days)
+      // After a week it feels irrelevant and nagging
+      const daysSinceLastCheckin = lastCheckinOffset;
+      if (daysSinceLastCheckin > 7) return null;
+
+      // Now count the length of the streak that was broken.
+      // Walk backwards from the last check-in day, counting consecutive days.
+      let lostStreak = 0;
+      let offset     = lastCheckinOffset;
+      while (checkinSet.has(daysAgoString(offset))) {
+        lostStreak++;
+        offset++;
+        if (offset > 3650) break;
+      }
+
+      return {
+        daysSinceLastCheckin, // how long ago the streak ended (1 = yesterday missed)
+        lostStreak,           // how long the streak was before it broke
+      };
+    }
+
+    // Pool of encouraging messages — picked randomly so it feels fresh
+    // Each entry: { emoji, title, body }
+    // {streak} and {days} are placeholders we'll replace with real numbers
+    const BROKEN_MESSAGES = [
+      {
+        emoji: '🌱',
+        title: 'Every expert was once a beginner.',
+        body:  'Missing a day doesn\'t erase your effort. Start fresh today.',
+      },
+      {
+        emoji: '💛',
+        title: 'It\'s okay. Life happened.',
+        body:  'The best time to restart was yesterday. The second best time is right now.',
+      },
+      {
+        emoji: '🌊',
+        title: 'Tides go in and out.',
+        body:  'A small wave doesn\'t mean the ocean stopped. Tap in today and keep going.',
+      },
+      {
+        emoji: '🧩',
+        title: 'One missing piece doesn\'t ruin the picture.',
+        body:  'You showed up {streak} days in a row. That\'s real. Get back to it.',
+      },
+      {
+        emoji: '☀️',
+        title: 'New day, clean slate.',
+        body:  'You\'ve already proven you can do this. Let\'s build that streak back up.',
+      },
+      {
+        emoji: '🔄',
+        title: 'Progress, not perfection.',
+        body:  'A streak of 1 restarts here. Every long journey began with a single step.',
+      },
+    ];
+
+    function buildBrokenStreakHTML(habit) {
+      const info = getBrokenStreakInfo(habit);
+
+      // No broken streak detected — return nothing
+      if (!info) return '';
+
+      // Pick a message. Math.random() gives a number 0–1.
+      // Multiply by the array length and floor it → a random valid index.
+      // We use the habit's id to seed it so the same habit always shows
+      // the same message (doesn't flicker on re-render).
+      const index = parseInt(habit.id.slice(-2), 10) % BROKEN_MESSAGES.length;
+      const msg   = BROKEN_MESSAGES[index];
+
+      // Replace the {streak} placeholder with the actual lost streak number
+      const body = msg.body.replace('{streak}', info.lostStreak);
+
+      // Build a contextual sub-line based on how many days have passed
+      let daysLine = '';
+      if (info.daysSinceLastCheckin === 2) {
+        daysLine = info.lostStreak > 1
+          ? `Your ${info.lostStreak}-day streak ended 2 days ago.`
+          : 'You missed the last 2 days.';
+      } else if (info.daysSinceLastCheckin >= 3) {
+        daysLine = info.lostStreak > 1
+          ? `Your ${info.lostStreak}-day streak ended ${info.daysSinceLastCheckin} days ago.`
+          : `You last checked in ${info.daysSinceLastCheckin} days ago.`;
+      }
+
+      return `
+        <div class="broken-streak">
+          <span class="broken-streak-emoji">${msg.emoji}</span>
+          <div class="broken-streak-text">
+            <strong>${msg.title}</strong>
+            ${daysLine ? `<span style="color:var(--text-muted);font-size:11.5px;">${daysLine}</span><br>` : ''}
+            ${body}
+          </div>
+        </div>
+      `;
+    }
+    //
+    // Shows how many hours/minutes are left today
+    // to check in. Only shown when not yet done.
+    // Changes colour as midnight approaches.
+    // ===========================================
+
+    function buildUrgencyHTML(doneToday, streak) {
+      // If already checked in today, no urgency needed — return nothing
+      if (doneToday) return '';
+
+      const now      = new Date();
+      const midnight = new Date();
+
+      // Set midnight to 23:59:59 tonight — the last moment of today
+      midnight.setHours(23, 59, 59, 999);
+
+      // Time remaining in milliseconds
+      const msLeft      = midnight - now;
+
+      // Convert milliseconds into human-readable hours and minutes
+      // Math.floor() rounds DOWN to the nearest whole number
+      // e.g. Math.floor(5.9) = 5
+      const hoursLeft   = Math.floor(msLeft / (1000 * 60 * 60));
+      const minutesLeft = Math.floor((msLeft % (1000 * 60 * 60)) / (1000 * 60));
+
+      // Decide urgency level based on hours remaining
+      let level, message, icon;
+
+      if (hoursLeft >= 6) {
+        // Plenty of time — calm blue
+        level   = 'level-ok';
+        icon    = '🕐';
+        message = `${hoursLeft}h ${minutesLeft}m left today`;
+
+      } else if (hoursLeft >= 2) {
+        // Getting close — amber warning
+        level   = 'level-soon';
+        icon    = '⚡';
+        message = `Only ${hoursLeft}h ${minutesLeft}m left to check in!`;
+
+      } else if (hoursLeft >= 1) {
+        // Under 2 hours — urgent
+        level   = 'level-danger';
+        icon    = '🚨';
+        message = `${hoursLeft}h ${minutesLeft}m left — don't break your streak!`;
+
+      } else {
+        // Under 1 hour — critical
+        level   = 'level-danger';
+        icon    = '🔴';
+        // Under 60 minutes — show only minutes
+        const minsOnly = Math.floor(msLeft / (1000 * 60));
+        if (streak > 0) {
+          message = `${minsOnly} min left — your ${streak}-day streak is at risk!`;
+        } else {
+          message = `${minsOnly} minutes left today!`;
+        }
+      }
+
+      return `
+        <div class="urgency-bar ${level}">
+          <div class="urgency-dot"></div>
+          <span class="urgency-text">${icon} ${message}</span>
+        </div>
+      `;
+    }
+
+    // ===========================================
+    // SECTION 3H — RENDER HABITS (updated with urgency)
+    // ===========================================
+
+    function renderHabits() {
+      const habits       = loadHabits();
+      const listEl       = document.getElementById('habitsList');
+      const emptyStateEl = document.getElementById('emptyState');
+
+      // Always keep the stats bar in sync
+      renderStatsBar();
+
+      if (habits.length === 0) {
+        emptyStateEl.style.display = 'block';
+        listEl.innerHTML = '';
+        return;
+      }
+
+      emptyStateEl.style.display = 'none';
+
+      const cardsHTML = habits.map(habit => {
+
+        const doneToday = isDoneToday(habit);
+
+        // ← Calculate the REAL streak number now
+        const streak    = calculateStreak(habit);
+
+        const btnText  = doneToday ? '✓ Done today!' : 'Tap to check in today';
+        const btnClass = doneToday ? 'checkin-btn done' : 'checkin-btn';
+        const cardClass = doneToday ? 'habit-card done-today' : 'habit-card';
+
+        // Streak label: "day" vs "days" (grammar matters!)
+        const streakLabel = streak === 1 ? 'day streak' : 'days streak';
+
+        return `
+          <div class="${cardClass}" data-id="${habit.id}">
+
+            <div class="habit-card-top">
+              <div class="habit-name">${habit.name}</div>
+              <div class="category-badge ${habit.category}">
+                ${CATEGORY_LABELS[habit.category]}
+              </div>
+            </div>
+
+            <!-- Dynamic SVG flame — grows with the streak -->
+            <div class="streak-row">
+              ${buildFlameHTML(streak)}
+              <span class="streak-count">${streak}</span>
+              <span class="streak-label">${streakLabel}</span>
+            </div>
+
+            <!-- Gentle encouragement when a streak has broken recently -->
+            ${buildBrokenStreakHTML(habit)}
+
+            <button class="${btnClass}" data-id="${habit.id}" ${doneToday ? 'disabled' : ''}>
+              ${btnText}
+            </button>
+
+            <!-- Urgency countdown — only visible when not yet checked in today -->
+            ${buildUrgencyHTML(doneToday, streak)}
+
+            <!-- 7-day history grid -->
+            ${buildWeekGridHTML(habit)}
+
+            <button class="delete-btn" data-id="${habit.id}">✕ Remove</button>
+
+          </div>
+        `;
+
+      }).join('');
+
+      listEl.innerHTML = cardsHTML;
+
+      listEl.querySelectorAll('.checkin-btn').forEach(btn => {
+        btn.addEventListener('click', () => checkInHabit(btn.dataset.id));
+      });
+
+      listEl.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const updated = loadHabits().filter(h => h.id !== btn.dataset.id);
+          saveHabits(updated);
+          renderHabits();
+        });
+      });
+    }
+
+
+    // ===========================================
+    // SECTION 4 — MODAL OPEN / CLOSE
+    // ===========================================
+
+    const openModalBtn = document.getElementById('openModalBtn');
+    const modalOverlay = document.getElementById('modalOverlay');
+
+    function openModal() {
+      modalOverlay.classList.add('open');
+      // Auto-focus the name input so the keyboard appears on mobile
+      setTimeout(() => document.getElementById('habitName').focus(), 350);
+    }
+
+    function closeModal() {
+      modalOverlay.classList.remove('open');
+      // Clear the input field so it's blank next time
+      document.getElementById('habitName').value = '';
+    }
+
+    openModalBtn.addEventListener('click', openModal);
+
+    // Close if user taps the dark background (outside the modal)
+    modalOverlay.addEventListener('click', (event) => {
+      if (event.target === modalOverlay) closeModal();
+    });
+
+
+    // ===========================================
+    // SECTION 5 — SAVE NEW HABIT
+    // ===========================================
+
+    document.getElementById('saveHabitBtn').addEventListener('click', () => {
+
+      // Read the value typed into the input field
+      const nameInput = document.getElementById('habitName');
+      const name = nameInput.value.trim(); // .trim() removes accidental spaces
+
+      // Validation — don't save if the name is empty
+      if (!name) {
+        // Shake the input to signal "please fill this in"
+        nameInput.style.borderColor = 'var(--accent)';
+        nameInput.focus();
+        // Reset the border after 1.5 seconds
+        setTimeout(() => nameInput.style.borderColor = '', 1500);
+        return; // stop here, don't save
+      }
+
+      // Read the selected category from the dropdown
+      const category = document.getElementById('habitCategory').value;
+
+      // Build the new habit object
+      // An "object" in JS is a collection of key: value pairs
+      const newHabit = {
+        id:        Date.now().toString(), // unique ID = current timestamp as text
+        name:      name,
+        category:  category,
+        createdAt: new Date().toISOString(), // ISO date string e.g. "2025-03-24T10:30:00Z"
+      };
+
+      // Load existing habits, add the new one, save back
+      const habits = loadHabits();
+      habits.push(newHabit);   // .push() adds an item to the end of an array
+      saveHabits(habits);
+
+      // Close the modal and refresh the cards on screen
+      closeModal();
+      renderHabits();
+    });
+
+    // Also allow pressing Enter in the name field to save
+    document.getElementById('habitName').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('saveHabitBtn').click();
+    });
+
+
+    // ===========================================
+    // SECTION 6 — FIRST RENDER ON PAGE LOAD
+    //
+    // When the page loads, immediately draw whatever
+    // habits are already saved in localStorage.
+    // ===========================================
+    renderHabits();
+
+    // ===========================================
+    // SECTION 7 — LIVE CLOCK  ← NEW in Step 7
+    //
+    // The urgency countdown needs to tick forward.
+    // setInterval() runs a function repeatedly on a timer.
+    // We re-render every 60 seconds so the countdown
+    // updates automatically without the user refreshing.
+    // ===========================================
+
+    // setInterval(function, milliseconds)
+    // 60 * 1000 = 60,000 ms = 1 minute
+    setInterval(() => {
+      renderHabits();
+    }, 60 * 1000);
+
+  </script>
+
+</body>
+</html>
