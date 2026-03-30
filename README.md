@@ -35,7 +35,7 @@ tracker on their own device.
 
 ## How to use
 
-Just open the link → [**Launch the app**](https://preethi-karingu.github.io/habit-tracker)
+Just open the link → [**Launch the app**]([https://preethi-karingu.github.io/Habit_Tracker/])
 
 Or download `index.html` and open it in any browser on any device.
 
